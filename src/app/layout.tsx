@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Portal de Clientes",
   description: "Acceda a sus archivos de forma segura y sencilla",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

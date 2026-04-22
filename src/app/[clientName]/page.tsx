@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
+import Image from 'next/image';
 import { getClientInfo } from '@/actions/client';
 import { FileBrowserService } from '@/services/filebrowser';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -106,8 +107,14 @@ export default function ClientPage({ params }: PageProps) {
       <div className="container mx-auto max-w-4xl py-8">
         <Card className="mb-6">
           <CardHeader className="text-center">
-            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-6">
-              <FolderOpen className="w-10 h-10 text-white" />
+            <div className="mx-auto w-40 h-40 mb-6">
+              <Image
+                src="/logo.png"
+                alt="SHA DE VENEZUELA"
+                width={160}
+                height={160}
+                className="object-contain"
+              />
             </div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
               Bienvenido, {clientInfo.name}
