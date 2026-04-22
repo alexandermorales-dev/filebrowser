@@ -6,7 +6,7 @@ import { getClientInfo } from '@/actions/client';
 import { FileBrowserService } from '@/services/filebrowser';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import Button from '@/components/ui/button';
-import { FolderOpen, ShieldCheck, File as FileIcon, Download, X, Image as ImageIcon, FileText } from 'lucide-react';
+import { FolderOpen, ShieldCheck, File as FileIcon, Download, X, Image as ImageIcon, FileText, ChevronLeft, Home } from 'lucide-react';
 import Link from 'next/link';
 
 interface PageProps {
@@ -21,6 +21,7 @@ export default function ClientPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [previewFile, setPreviewFile] = useState<any>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [currentPath, setCurrentPath] = useState<string>('');
   const fileBrowser = new FileBrowserService();
 
   useEffect(() => {
@@ -32,12 +33,45 @@ export default function ClientPage({ params }: PageProps) {
     loadClientInfo();
   }, [clientName]);
 
+  const loadFiles = async (path: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/files?clientName=${clientName}&path=${encodeURIComponent(path)}`);
+      const data = await response.json();
+      setClientInfo({ ...clientInfo, files: data.items || [] });
+      setCurrentPath(path);
+    } catch (error) {
+      console.error('Error loading files:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFileClick = async (file: any) => {
-    if (file.isDir) return;
-    
-    const apiUrl = `/api/file?path=${encodeURIComponent(file.path)}`;
-    setPreviewFile(file);
-    setPreviewUrl(apiUrl);
+    if (file.isDir) {
+      // Navigate into directory
+      const newPath = currentPath ? `${currentPath}/${file.name}` : `/${file.name}`;
+      await loadFiles(newPath);
+    } else {
+      // Preview file
+      const apiUrl = `/api/file?path=${encodeURIComponent(file.path)}`;
+      setPreviewFile(file);
+      setPreviewUrl(apiUrl);
+    }
+  };
+
+  const handleBack = async () => {
+    if (!currentPath) return;
+    const pathParts = currentPath.split('/').filter(Boolean);
+    pathParts.pop();
+    const newPath = pathParts.length > 0 ? `/${pathParts.join('/')}` : '';
+    await loadFiles(newPath);
+  };
+
+  const handleBreadcrumbClick = async (index: number) => {
+    const pathParts = currentPath.split('/').filter(Boolean);
+    const newPath = index === 0 ? '' : `/${pathParts.slice(0, index).join('/')}`;
+    await loadFiles(newPath);
   };
 
   const isImageFile = (fileName: string) => {
@@ -127,9 +161,41 @@ export default function ClientPage({ params }: PageProps) {
 
         <Card>
           <CardHeader>
-            <h2 className="text-2xl font-bold text-gray-900">
-              Sus Archivos ({files.length})
-            </h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {currentPath && (
+                  <Button variant="outline" onClick={handleBack}>
+                    <ChevronLeft className="w-4 h-4" />
+                    Atrás
+                  </Button>
+                )}
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Sus Archivos ({files.length})
+                </h2>
+              </div>
+            </div>
+            {currentPath && (
+              <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
+                <button
+                  onClick={() => loadFiles('')}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <Home className="w-4 h-4" />
+                </button>
+                <span>/</span>
+                {currentPath.split('/').filter(Boolean).map((part, index) => (
+                  <span key={index}>
+                    <button
+                      onClick={() => handleBreadcrumbClick(index + 1)}
+                      className="text-blue-600 hover:text-blue-700 hover:underline"
+                    >
+                      {part}
+                    </button>
+                    {index < currentPath.split('/').filter(Boolean).length - 1 && <span>/</span>}
+                  </span>
+                ))}
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             {files.length === 0 ? (
@@ -143,12 +209,13 @@ export default function ClientPage({ params }: PageProps) {
                   <div
                     key={file.path}
                     className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => !file.isDir && handleFileClick(file)}
+                    onClick={() => handleFileClick(file)}
                   >
                     <div className="flex items-center gap-3">
+                      {file.isDir && <FolderOpen className="w-8 h-8 text-purple-600" />}
                       {isImageFile(file.name) && <ImageIcon className="w-8 h-8 text-blue-600" />}
                       {isPdfFile(file.name) && <FileText className="w-8 h-8 text-red-600" />}
-                      {!isImageFile(file.name) && !isPdfFile(file.name) && <FileIcon className="w-8 h-8 text-blue-600" />}
+                      {!file.isDir && !isImageFile(file.name) && !isPdfFile(file.name) && <FileIcon className="w-8 h-8 text-blue-600" />}
                       <div>
                         <p className="font-medium text-gray-900">{file.name}</p>
                         <p className="text-sm text-gray-500">

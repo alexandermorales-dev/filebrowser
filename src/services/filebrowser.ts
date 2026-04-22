@@ -53,13 +53,11 @@ export class FileBrowserService {
     };
   }
 
-  async getClientFiles(clientName: string): Promise<any[]> {
+  async getClientFiles(clientName: string, path: string = ''): Promise<any[]> {
     try {
       const headers = await this.getHeaders();
-      const response = await fetch(
-        `${this.baseUrl}/api/resources/clientes/${clientName}`,
-        { headers }
-      );
+      const fullPath = path ? `${this.baseUrl}/api/resources/clientes/${clientName}${path}` : `${this.baseUrl}/api/resources/clientes/${clientName}`;
+      const response = await fetch(fullPath, { headers });
 
       if (!response.ok) {
         console.error('Failed to fetch client files');
@@ -105,14 +103,14 @@ export class FileBrowserService {
     }
   }
 
-  async getClientInfo(clientName: string): Promise<ClientInfo | null> {
+  async getClientInfo(clientName: string, path: string = ''): Promise<ClientInfo | null> {
     const exists = await this.checkClientExists(clientName);
 
     if (!exists) {
       return null;
     }
 
-    const files = await this.getClientFiles(clientName);
+    const files = await this.getClientFiles(clientName, path);
 
     return {
       name: clientName.charAt(0).toUpperCase() + clientName.slice(1),
